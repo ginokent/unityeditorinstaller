@@ -34,8 +34,8 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
           done
     )
     echo "${csvData:?}" >"${UnitySetupURLCSVFile:?}"
+  fi
   echo "UnitySetup URL csv file was saved as ${UnitySetupURLCSVFile:?}" | stderrPipeInfo
-fi
 )}
 
 
