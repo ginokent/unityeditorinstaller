@@ -41,7 +41,11 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
 
 
 function InstallUnity () { (
-  date
+  if [[ $* =~ install[[:blank:]]+.*[[:blank:]]*[^\.]+\.[^\.]+\.[^\.]+ ]]; then
+    # shellcheck disable=SC2001
+    specified_version=$(echo "$*" | sed "s@install[[:blank:]][[:blank:]]*.*[[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
+    echo "${specified_version}"
+  fi
 )}
 
 
