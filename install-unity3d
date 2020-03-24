@@ -20,7 +20,7 @@ stderrPipeInfo ()   { awk '{print "\033[34m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [   
 
 
 function CreateOrUpdateUnitySetupURLCSVFile () { (
-  if [[ $* =~ .*-f.* ]] ||  [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
+  if [[ $* =~ .*-f.*|.*--fource.* ]] ||  [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
     echo "Generating a UnitySetup URL csv file..." | stderrPipeInfo
     csvData=$(
       # CSV header
@@ -45,7 +45,7 @@ function ListInstallableVersions () { (
     grep -E "[^${SEPARATOR:?}]+${SEPARATOR:?}200${SEPARATOR:?}[^${SEPARATOR:?}]+" "${UnitySetupURLCSVFile:?}" \
       | awk -F"${SEPARATOR:?}" "{print \$1}"
   )
-  if [[ $* =~ .*-1.* ]]; then
+  if [[ $* =~ .*-1.*|.*--one-column.* ]]; then
     echo "${versions}"
   elif command -v column 1>/dev/null; then
     echo "${versions}" | column
@@ -69,12 +69,14 @@ The commands are:
         init        create or update UnitySetup URL csv file as ${UnitySetupURLCSVFile:?}
 
                     options
-                        -f    fource update
+                        -f, --fource
+                            fource update
 
         list        list installable Unity versions
 
                     options
-                        -1    If you want to output a single column, add this option.
+                        -1, --one-column
+                            If you want to output a single column, add this option
 
 USAGE
 )}
