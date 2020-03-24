@@ -41,6 +41,10 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
 
 
 function InstallUnity () { (
+  if ! uname -s | grep -q Linux; then
+    echo "OS not supported." | stderrPipeError
+    exit 1
+  fi
   if [[ $* =~ install.*[[:blank:]]*[[:blank:]]+[^\.]+\.[^\.]+\.[^\.]+ ]]; then
     # shellcheck disable=SC2001
     specified_version=$(echo "$*" | sed "s@install.*[[:blank:]]*[[:blank:]][[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
