@@ -40,6 +40,12 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
 
 
 
+function InstallUnity () { (
+  date
+)}
+
+
+
 function ListInstallableVersions () { (
   versions=$(
     grep -E "[^${SEPARATOR:?}]+${SEPARATOR:?}200${SEPARATOR:?}[^${SEPARATOR:?}]+" "${UnitySetupURLCSVFile:?}" \
