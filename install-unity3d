@@ -20,18 +20,22 @@ stderrPipeInfo ()   { awk '{print "\033[34m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [   
 
 
 function CreateOrUpdateUnitySetupURLCSVFile () { (
-  csvData=$(
-    # CSV header
-    printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "version" "status" "url"
-    # CSV data
-    curl -LsS "${UNITY_DOWNLOAD_ARCHIVE_URL:?}" \
-      | grep "href=\"unityhub://" \
-      | sed "s|^.*\"unityhub://\([^/]*\)/\([^\"]*\)\".*$|https://download.unity3d.com/download_unity/\2/UnitySetup-\1|" \
-      | while read -r url; do
-          printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
-        done
-  )
-  echo "${csvData:?}" >"${UnitySetupURLCSVFile:?}"
+  if [[ $* =~ .*-f.* ]] ||  [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
+    echo "Generating a UnitySetup URL csv file..." | stderrPipeInfo
+    csvData=$(
+      # CSV header
+      printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "version" "status" "url"
+      # CSV data
+      curl -LsS "${UNITY_DOWNLOAD_ARCHIVE_URL:?}" \
+        | grep "href=\"unityhub://" \
+        | sed "s|^.*\"unityhub://\([^/]*\)/\([^\"]*\)\".*$|https://download.unity3d.com/download_unity/\2/UnitySetup-\1|" \
+        | while read -r url; do
+            printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
+          done
+    )
+    echo "${csvData:?}" >"${UnitySetupURLCSVFile:?}"
+  echo "UnitySetup URL csv file was saved as ${UnitySetupURLCSVFile:?}" | stderrPipeInfo
+fi
 )}
 
 
@@ -41,7 +45,9 @@ function ListInstallableVersions () { (
     grep -E "[^${SEPARATOR:?}]+${SEPARATOR:?}200${SEPARATOR:?}[^${SEPARATOR:?}]+" "${UnitySetupURLCSVFile:?}" \
       | awk -F"${SEPARATOR:?}" "{print \$1}"
   )
-  if [[ ! $* =~ .*-1.* ]] && command -v column 1>/dev/null; then
+  if [[ $* =~ .*-1.* ]]; then
+    echo "${versions}"
+  elif command -v column 1>/dev/null; then
     echo "${versions}" | column
   else
     echo "${versions}"
@@ -61,7 +67,14 @@ Usage:
 The commands are:
 
         init        create or update UnitySetup URL csv file as ${UnitySetupURLCSVFile:?}
+
+                    options
+                        -f    fource update
+
         list        list installable Unity versions
+
+                    options
+                        -1    If you want to output a single column, add this option.
 
 USAGE
 )}
@@ -71,11 +84,7 @@ USAGE
 function main () {
   case "$1" in
   init)
-    if [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
-      echo "Generating a UnitySetup URL csv file..." | stderrPipeInfo
       CreateOrUpdateUnitySetupURLCSVFile "$@"
-      echo "UnitySetup URL csv file was saved as ${UnitySetupURLCSVFile:?}" | stderrPipeInfo
-    fi
     ;;
   list|list-versions)
     ListInstallableVersions "$@"
