@@ -68,13 +68,19 @@ The commands are:
 
         init        create or update UnitySetup URL csv file as ${UnitySetupURLCSVFile:?}
 
-                    options
+                    arguments
                         -f, --fource
                             fource update
 
+        install     install specified version Unity
+
+                    arguments
+                        <version>
+                            Unity version
+
         list        list installable Unity versions
 
-                    options
+                    arguments
                         -1, --one-column
                             If you want to output a single column, add this option
 
@@ -86,7 +92,10 @@ USAGE
 function main () {
   case "$1" in
   init)
-      CreateOrUpdateUnitySetupURLCSVFile "$@"
+    CreateOrUpdateUnitySetupURLCSVFile "$@"
+    ;;
+  install)
+    InstallUnity "$@"
     ;;
   list|list-versions)
     ListInstallableVersions "$@"
