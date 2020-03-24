@@ -4,6 +4,7 @@ set -eE -o pipefail
 # const
 declare -r PROG_NAME=install-unity3d && export PROG_NAME
 declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/archive && export UNITY_DOWNLOAD_ARCHIVE_URL
+declare -r SEPARATOR='\t' && export SEPARATOR
 
 # var
 declare -r UnitySetupURLCSVFile="${HOME:?}/.${PROG_NAME:?}.csv" && export UnitySetupURLCSVFile
@@ -18,29 +19,69 @@ stderrPipeInfo ()   { awk '{print "\033[34m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [   
 
 
 
-
-
-
 function CreateOrUpdateUnitySetupURLCSVFile () { (
   csvData=$(
     # CSV header
-    printf "%s\t%s\t%s\n" "version" "status" "url"
+    printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "version" "status" "url"
     # CSV data
     curl -LsS "${UNITY_DOWNLOAD_ARCHIVE_URL:?}" \
       | grep "href=\"unityhub://" \
       | sed "s|^.*\"unityhub://\([^/]*\)/\([^\"]*\)\".*$|https://download.unity3d.com/download_unity/\2/UnitySetup-\1|" \
       | while read -r url; do
-          printf "%s\t%s\t%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
+          printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
         done
   )
   echo "${csvData:?}" >"${UnitySetupURLCSVFile:?}"
 )}
 
 
-function main () {
-  if [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
-    echo "Generating a UnitySetup URL csv file..." | stderrPipeInfo
-    CreateOrUpdateUnitySetupURLCSVFile
+
+function ListInstallableVersions () { (
+  versions=$(
+    grep -E "[^${SEPARATOR:?}]+${SEPARATOR:?}200${SEPARATOR:?}[^${SEPARATOR:?}]+" "${UnitySetupURLCSVFile:?}" \
+      | awk -F"${SEPARATOR:?}" "{print \$1}"
+  )
+  if [[ ! $* =~ .*-1.* ]] && command -v column 1>/dev/null; then
+    echo "${versions}" | column
+  else
+    echo "${versions}"
   fi
-  echo "UnitySetup URL csv file was saved as: ${UnitySetupURLCSVFile:?}" | stderrPipeInfo
+)}
+
+
+
+function Usage () { (
+  cat << USAGE
+${PROG_NAME:?} is a tool for helping to install Unity to Linux.
+
+Usage:
+
+	${PROG_NAME:?} <command> [arguments]
+
+The commands are:
+
+        init        create or update UnitySetup URL csv file as ${UnitySetupURLCSVFile:?}
+        list        list installable Unity versions
+
+USAGE
+)}
+
+
+
+function main () {
+  case "$1" in
+  init)
+    if [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
+      echo "Generating a UnitySetup URL csv file..." | stderrPipeInfo
+      CreateOrUpdateUnitySetupURLCSVFile "$@"
+      echo "UnitySetup URL csv file was saved as ${UnitySetupURLCSVFile:?}" | stderrPipeInfo
+    fi
+    ;;
+  list|list-versions)
+    ListInstallableVersions "$@"
+    ;;
+  *)
+    Usage
+    ;;
+  esac
 } && main "$@"
