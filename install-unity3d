@@ -27,7 +27,7 @@ declare -r UnitySetupURLCSVFile="${StoredDir:?}/.${PROG_NAME:?}.csv"      && exp
 
 
 function CreateOrUpdateUnitySetupURLCSVFile () { (
-  if [[ $* =~ .*-f.*|.*--fource.* ]] ||  [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
+  if [[ $* =~ .*-f.*|.*--fource.* ]] ||  [[ ! -r ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
     echo "Generating a UnitySetup URL csv file as ${UnitySetupURLCSVFile:?} ..." | stderrPipeInfo
     csvData=$(
       # CSV header
@@ -53,21 +53,27 @@ function InstallUnity () { (
     echo "OS not supported." | stderrPipeError
     exit 1
   fi
-  if [[ $* =~ install.*[[:blank:]]*[[:blank:]]+[^\.]+\.[^\.]+\.[^\.]+ ]]; then
-    # shellcheck disable=SC2001
-    specified_version=$(echo "$*" | sed "s@install.*[[:blank:]]*[[:blank:]][[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
-    specified_version_escaped_regex=${specified_version//\./\\.}
-    if grep -q "^${specified_version}" "${UnitySetupURLCSVFile:?}"; then
-      grep "${specified_version_escaped_regex}" "${UnitySetupURLCSVFile:?}"
-    fi
-  else
-    echo "specify version" | stderrPipeError
+  if [[ ! $* =~ install.*[[:blank:]]*[[:blank:]]+[^\.]+\.[^\.]+\.[^\.]+ ]]; then
+    echo "Specify Unity version." | stderrPipeError
+    exit 1
   fi
+  # shellcheck disable=SC2001
+  specified_version=$(echo "$*" | sed "s@install.*[[:blank:]]*[[:blank:]][[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
+  specified_version_escaped_regex=${specified_version//\./\\.}
+  if ! grep -q "^${specified_version_escaped_regex}" "${UnitySetupURLCSVFile:?}"; then
+    echo "Specify the version of Unity that can be installed." | stderrPipeError
+    exit 1
+  fi
+  url=$(grep "^${specified_version_escaped_regex}" "${UnitySetupURLCSVFile:?}" | awk -F"${SEPARATOR:?}" "\$0=\$3")
+  echo "Download ${url:?} as AAAA" | stderrPipeInfo
 )}
 
 
 
 function ListInstallableVersions () { (
+  if [[ ! -r ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
+    echo "UnitySetup URL csv file not found." | stderrPipeWarn
+  fi
   versions=$(
     grep -E "[^${SEPARATOR:?}]+${SEPARATOR:?}200${SEPARATOR:?}[^${SEPARATOR:?}]+" "${UnitySetupURLCSVFile:?}" \
       | awk -F"${SEPARATOR:?}" "{print \$1}"
