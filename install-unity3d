@@ -2,14 +2,11 @@
 set -eE -o pipefail
 
 # const
-declare -r PROG_NAME=install-unity3d && export PROG_NAME
+declare -r PROG_NAME=install-unity3d                                                 && export PROG_NAME
 declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/archive && export UNITY_DOWNLOAD_ARCHIVE_URL
-declare -r SEPARATOR='\t' && export SEPARATOR
+declare -r SEPARATOR='\t'                                                            && export SEPARATOR
 
-# var
-declare -r UnitySetupURLCSVFile="${HOME:?}/.${PROG_NAME:?}.csv" && export UnitySetupURLCSVFile
-
-# function
+# function stderr
 stderrPipeDebug ()  { awk '{print "\033[00m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [  debug] "$0"\033[0m"}' /dev/stdin 1>&2; } && export -f stderrPipeDebug
 stderrPipeNotice () { awk '{print "\033[01m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [ notice] "$0"\033[0m"}' /dev/stdin 1>&2; } && export -f stderrPipeNotice
 stderrPipeError ()  { awk '{print "\033[31m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [  error] "$0"\033[0m"}' /dev/stdin 1>&2; } && export -f stderrPipeError
@@ -17,11 +14,21 @@ stderrPipeOK ()     { awk '{print "\033[32m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [   
 stderrPipeWarn ()   { awk '{print "\033[33m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [warning] "$0"\033[0m"}' /dev/stdin 1>&2; } && export -f stderrPipeWarn
 stderrPipeInfo ()   { awk '{print "\033[34m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [   info] "$0"\033[0m"}' /dev/stdin 1>&2; } && export -f stderrPipeInfo
 
+# function 1
+selectWritableDir () { for path in "$@"; do [ ! -w "${path}" ] || { echo -n "${path}"; return 0; }; done }
+
+# var
+# shellcheck disable=SC2155
+declare -r ProgDir=$(cd "$(dirname "$0")" && pwd)                         && export ProgDir
+# shellcheck disable=SC2155
+declare -r StoredDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp) && export StoredDir
+declare -r UnitySetupURLCSVFile="${StoredDir:?}/.${PROG_NAME:?}.csv"      && export UnitySetupURLCSVFile
+
 
 
 function CreateOrUpdateUnitySetupURLCSVFile () { (
   if [[ $* =~ .*-f.*|.*--fource.* ]] ||  [[ ! -f ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
-    echo "Generating a UnitySetup URL csv file..." | stderrPipeInfo
+    echo "Generating a UnitySetup URL csv file as ${UnitySetupURLCSVFile:?} ..." | stderrPipeInfo
     csvData=$(
       # CSV header
       printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "version" "status" "url"
@@ -31,7 +38,8 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
         | sed "s|^.*\"unityhub://\([^/]*\)/\([^\"]*\)\".*$|https://download.unity3d.com/download_unity/\2/UnitySetup-\1|" \
         | while read -r url; do
             printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
-          done
+          done \
+        | if [[ $* =~ .*-v.*|.*--verbose.* ]]; then tee /dev/stderr; else cat; fi
     )
     echo "${csvData:?}" >"${UnitySetupURLCSVFile:?}"
   fi
@@ -90,6 +98,8 @@ The commands are:
                     arguments
                         -f, --fource
                             fource update
+                        -v, --verbose
+                            display verbose info.
 
         install     install specified version Unity
 
