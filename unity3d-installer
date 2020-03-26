@@ -2,7 +2,7 @@
 set -eE -o pipefail
 
 # const
-declare -r PROG_NAME=install-unity3d                                                 && export PROG_NAME
+declare -r PROG_NAME=unity3d-installer                                               && export PROG_NAME
 declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/archive && export UNITY_DOWNLOAD_ARCHIVE_URL
 declare -r SEPARATOR='\t'                                                            && export SEPARATOR
 
@@ -16,6 +16,7 @@ stderrPipeInfo ()   { awk '{print "\033[34m'"$(date +%Y-%m-%dT%H:%M:%S%z)"' [   
 
 # function 1
 selectWritableDir () { for path in "$@"; do [ ! -w "${path}" ] || { echo -n "${path}"; return 0; }; done }
+checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported." | stderrPipeError; exit 1; fi; }
 
 # var
 # shellcheck disable=SC2155
@@ -49,10 +50,6 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
 
 
 function InstallUnity () { (
-  if ! uname -s | grep -q Linux; then
-    echo "OS not supported." | stderrPipeError
-    exit 1
-  fi
   if [[ ! $* =~ install.*[[:blank:]]*[[:blank:]]+[^\.]+\.[^\.]+\.[^\.]+ ]]; then
     echo "Specify Unity version." | stderrPipeError
     exit 1
@@ -125,6 +122,7 @@ USAGE
 
 
 function main () {
+  checkSupportOS
   case "$1" in
   init)
     CreateOrUpdateUnitySetupURLCSVFile "$@"
