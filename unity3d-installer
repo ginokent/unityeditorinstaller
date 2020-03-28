@@ -73,7 +73,8 @@ function InstallUnity () { (
   fi
   url=$(echo "${csvRow:?}" | awk -F"${Separator:?}" "\$0=\$3")
   setupFileName=$(basename "${url:?}")
-  defaultDownloadPath="${SetupsDir:?}/${setupFileName:?}/${setupFileName:?}"
+  defaultDownloadDir="${SetupsDir:?}/${setupFileName:?}" && mkdir -p "${defaultDownloadDir:?}"
+  defaultDownloadPath="${defaultDownloadDir:?}/${setupFileName:?}"
   echo "Download ${url:?} as ${defaultDownloadPath:?}" | sh -c "${stderrPipeInfo:?}"
   sh -cx "curl -L ${url:?} -o ${defaultDownloadPath:?}"
 )}
