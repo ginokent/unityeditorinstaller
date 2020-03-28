@@ -76,8 +76,8 @@ function InstallUnity () { (
   defaultDownloadDir="${SetupsDir:?}/${setupFileName:?}" && mkdir -p "${defaultDownloadDir:?}"
   defaultDownloadPath="${defaultDownloadDir:?}/${setupFileName:?}"
   echo "Download ${url:?} as ${defaultDownloadPath:?}" | sh -c "${stderrPipeInfo:?}"
-  sh -cx "curl -LR ${url:?} -z ${defaultDownloadPath:?} -o ${defaultDownloadPath:?}"
-  sh -cx "chmod +x ${defaultDownloadPath:?}"
+  sh -cx "curl -LR ${url:?} -z ${defaultDownloadPath:?} -o ${defaultDownloadPath:?} && chmod +x ${defaultDownloadPath:?}"
+  "${defaultDownloadPath:?}"
 )}
 
 
