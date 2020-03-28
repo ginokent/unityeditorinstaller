@@ -90,7 +90,7 @@ function InstallUnity () { (
   sh -cx "curl -LR ${url:?} -z ${defaultDownloadPath:?} -o ${defaultDownloadPath:?} && chmod +x ${defaultDownloadPath:?}"
 
   while true; do
-    error=$("${defaultDownloadPath:?}" --help 2>&1 | tee /dev/stderr)
+    error=$("${defaultDownloadPath:?}" --help 2>&1 | tee /dev/stderr) || true
     if [[ ${error} ]]; then
       lib="$(apt-file search "$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")" | grep x86_64-linux-gnu | awk -F: "\$0=\$1")"
       apt-get -y install "${lib:?}"
