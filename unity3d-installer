@@ -14,6 +14,9 @@ stderrPipeWarn='  exec awk "{print \"\\033[33m$(date +%Y-%m-%dT%H:%M:%S%z) [warn
 # shellcheck disable=SC2016,SC2089,SC2090
 stderrPipeInfo='  exec awk "{print \"\\033[34m$(date +%Y-%m-%dT%H:%M:%S%z) [   info] \"\$0\"\\033[0m\"}" /dev/stdin 1>&2' && export stderrPipeInfo
 
+apt-get () { if [ "$1" = update ]; then [ 43200 -ge $(($(date +%s)-$( { date -d "$(stat /var/lib/apt/lists/* | awk -F"Change:" "/Change:/ {print \$2}" | sort | tail -n 1)" +%s; } 2>/dev/null)+0)) ] || command apt-get update; else command apt-get "$@"; fi; } && export -f apt-get
+apt-file () { if [ "$1" = update ]; then [ 43200 -ge $(($(date +%s)-$( { date -d "$(stat /var/lib/apt/lists/* | awk -F"Change:" "/Change:/ {print \$2}" | sort | tail -n 1)" +%s; } 2>/dev/null)+0)) ] || command apt-file update; else command apt-file "$@"; fi; } && export -f apt-file
+
 # const
 declare -r PROG_NAME=unity3d-installer                                               && export PROG_NAME
 declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/archive && export UNITY_DOWNLOAD_ARCHIVE_URL
@@ -21,6 +24,14 @@ declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/arc
 # function 1
 selectWritableDir () { for path in "$@"; do [ ! -w "${path}" ] || { echo -n "${path}"; return 0; }; done }
 checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported." | sh -c "${stderrPipeError:?}"; exit 1; fi; }
+resolveDependencies () {
+  if command -v apt-get 1>/dev/null && ! command -v apt-file 1>/dev/null; then
+    apt-get update && apt-get install -y apt-file
+  else
+    echo "OS not supported." | sh -c "${stderrPipeError:?}"
+    exit 1
+  fi
+}
 
 # var 1
 separator=$(printf '\t')                                       && declare -r Separator="${separator:?}" && export Separator
@@ -77,7 +88,16 @@ function InstallUnity () { (
   defaultDownloadPath="${defaultDownloadDir:?}/${setupFileName:?}"
   echo "Download ${url:?} as ${defaultDownloadPath:?}" | sh -c "${stderrPipeInfo:?}"
   sh -cx "curl -LR ${url:?} -z ${defaultDownloadPath:?} -o ${defaultDownloadPath:?} && chmod +x ${defaultDownloadPath:?}"
-  "${defaultDownloadPath:?}"
+
+  while true; do
+    error=$("${defaultDownloadPath:?}" --help 2>&1 | tee /dev/stderr)
+    if [[ ${error} ]]; then
+      lib="$(apt-file search "$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")" | grep x86_64-linux-gnu | awk -F: "\$0=\$1")"
+      apt-get -y install "${lib:?}"
+    else
+      break
+    fi
+  done
 )}
 
 
