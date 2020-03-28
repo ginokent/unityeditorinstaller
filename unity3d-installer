@@ -33,7 +33,8 @@ declare -r UnitySetupURLCSVFile="${StoredDir:?}/.${PROG_NAME:?}.csv"      && exp
 
 
 function CreateOrUpdateUnitySetupURLCSVFile () { (
-  if [[ $* =~ .*-f.*|.*--fource.* ]] ||  [[ ! -r ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
+  # [ fource option ] || [ can't read ${UnitySetupURLCSVFile:?} ] || [ ${UnitySetupURLCSVFile:?} is empty ]
+  if [[ $* =~ .*-f.*|.*--fource.* ]] || [[ ! -r ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
     echo "Generating a UnitySetup URL csv file as ${UnitySetupURLCSVFile:?} ..." | sh -c "${stderrPipeInfo:?}"
     csvData=$(
       # CSV header
@@ -55,6 +56,7 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
 
 
 function InstallUnity () { (
+  # [ doesn't have install subcommand and version ]
   if [[ ! $* =~ install.*[[:blank:]]*[[:blank:]]+[^\.]+\.[^\.]+\.[^\.]+ ]]; then
     echo "Specify Unity version." | sh -c "${stderrPipeError:?}"
     exit 1
