@@ -17,18 +17,19 @@ stderrPipeInfo='  exec awk "{print \"\\033[34m$(date +%Y-%m-%dT%H:%M:%S%z) [   i
 # const
 declare -r PROG_NAME=unity3d-installer                                               && export PROG_NAME
 declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/archive && export UNITY_DOWNLOAD_ARCHIVE_URL
-declare -r SEPARATOR="$(printf '\t')"                                                && export SEPARATOR
 
 # function 1
 selectWritableDir () { for path in "$@"; do [ ! -w "${path}" ] || { echo -n "${path}"; return 0; }; done }
 checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported." | sh -c "${stderrPipeError:?}"; exit 1; fi; }
 
-# var
-# shellcheck disable=SC2155
-declare -r ProgDir=$(cd "$(dirname "$0")" && pwd)                         && export ProgDir
-# shellcheck disable=SC2155
-declare -r StoredDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp) && export StoredDir
-declare -r UnitySetupURLCSVFile="${StoredDir:?}/.${PROG_NAME:?}.csv"      && export UnitySetupURLCSVFile
+# var 1
+separator=$(printf '\t')                                       && declare -r Separator="${separator:?}" && export Separator
+progDir=$(cd "$(dirname "$0")" && pwd || exit 1)               && declare -r ProgDir="${progDir:?}"     && export ProgDir
+
+# var 2
+csvStoreDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp) && declare -r CSVStoreDir="${csvStoreDir:?}"                              && export CSVStoreDir
+: noop                                                           && declare -r UnitySetupURLCSVFile="${CSVStoreDir:?}/.${PROG_NAME:?}.csv" && export UnitySetupURLCSVFile
+setupsDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp)   && declare -r SetupsDir="${setupsDir:?}"                                  && export SetupsDir
 
 
 
@@ -38,13 +39,13 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
     echo "Generating a UnitySetup URL csv file as ${UnitySetupURLCSVFile:?} ..." | sh -c "${stderrPipeInfo:?}"
     csvData=$(
       # CSV header
-      printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "version" "status" "url"
+      printf "%s${Separator:?}%s${Separator:?}%s\n" "version" "status" "url"
       # CSV data
       curl -LsS "${UNITY_DOWNLOAD_ARCHIVE_URL:?}" \
         | grep "href=\"unityhub://" \
         | sed "s|^.*\"unityhub://\([^/]*\)/\([^\"]*\)\".*$|https://download.unity3d.com/download_unity/\2/UnitySetup-\1|" \
         | while read -r url; do
-            printf "%s${SEPARATOR:?}%s${SEPARATOR:?}%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
+            printf "%s${Separator:?}%s${Separator:?}%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
           done \
         | if [[ $* =~ .*-v.*|.*--verbose.* ]]; then tee /dev/stderr; else cat; fi
     )
@@ -61,15 +62,20 @@ function InstallUnity () { (
     echo "Specify Unity version." | sh -c "${stderrPipeError:?}"
     exit 1
   fi
+  status=200
   # shellcheck disable=SC2001
   specified_version=$(echo "$*" | sed "s@install.*[[:blank:]]*[[:blank:]][[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
   specified_version_escaped_regex=${specified_version//\./\\.}
-  if ! grep -q "^${specified_version_escaped_regex}" "${UnitySetupURLCSVFile:?}"; then
+  csvRow=$(grep "^${specified_version_escaped_regex}${Separator:?}${status:?}${Separator:?}" "${UnitySetupURLCSVFile:?}")
+  if [[ -z "${csvRow:?}" ]]; then
     echo "Specify the version of Unity that can be installed." | sh -c "${stderrPipeError:?}"
     exit 1
   fi
-  url=$(grep "^${specified_version_escaped_regex}" "${UnitySetupURLCSVFile:?}" | awk -F"${SEPARATOR:?}" "\$0=\$3")
-  echo "Download ${url:?} as AAAA" | sh -c "${stderrPipeInfo:?}"
+  url=$(echo "${csvRow:?}" | awk -F"${Separator:?}" "\$0=\$3")
+  setupFileName=$(basename "${url:?}")
+  defaultDownloadPath="${SetupsDir:?}/${setupFileName:?}/${setupFileName:?}"
+  echo "Download ${url:?} as ${defaultDownloadPath:?}" | sh -c "${stderrPipeInfo:?}"
+  sh -cx "curl -L ${url:?} -o ${defaultDownloadPath:?}"
 )}
 
 
@@ -79,8 +85,8 @@ function ListInstallableVersions () { (
     echo "UnitySetup URL csv file not found." | sh -c "${stderrPipeWarn:?}"
   fi
   versions=$(
-    grep -E "[^${SEPARATOR:?}]+${SEPARATOR:?}200${SEPARATOR:?}[^${SEPARATOR:?}]+" "${UnitySetupURLCSVFile:?}" \
-      | awk -F"${SEPARATOR:?}" "{print \$1}"
+    grep -E "[^${Separator:?}]+${Separator:?}200${Separator:?}[^${Separator:?}]+" "${UnitySetupURLCSVFile:?}" \
+      | awk -F"${Separator:?}" "{print \$1}"
   )
   if [[ $* =~ .*-1.*|.*--one-column.* ]]; then
     echo "${versions}"
