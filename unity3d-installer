@@ -71,7 +71,7 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
 
 function InstallUnity () { (
   # [ doesn't have install subcommand and version ]
-  if [[ ! $* =~ install.*[[:blank:]]*[[:blank:]]+[^\.]+\.[^\.]+\.[^\.]+ ]]; then
+  if [[ ! $* =~ install.*[[:blank:]]*[[:blank:]]+[^\.[:blank:]]+\.[^\.[:blank:]]+\.[^\.[:blank:]]+ ]]; then
     echo "Specify Unity version." | sh -c "${stderrPipeError:?}"
     exit 1
   fi
@@ -81,7 +81,7 @@ function InstallUnity () { (
   fi
   # vars
   status=200
-  specified_version=$(printf '%s' "$*" | sed "s@install.*[[:blank:]]*[[:blank:]]\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
+  specified_version=$(printf '%s' "$*" | grep -Eo "[^\.[:blank:]]+\.[^\.[:blank:]]+\.[^\.[:blank:]]+")
   csvRow=$(grep "^${specified_version//\./\\.}${Separator:?}${status:?}${Separator:?}" "${UnitySetupURLCSVFile:?}")
   if [[ -z "${csvRow:?}" ]]; then
     echo "Specify the version of Unity that can be installed." | sh -c "${stderrPipeError:?}"
@@ -122,7 +122,7 @@ function InstallUnity () { (
   installDir="${InstallBaseDir:?}/Unity/${specified_version:?}"
   cmd="'${defaultUnitySetupPath:?}' --unattended --download-location='${defaultUnitySetupDownloadDir:?}' --install-location='${installDir:?}'"
   if [[ $* =~ .*-y.*|.*--yes.* ]]; then
-    cmd="yes y | ${installCommands:?}"
+    cmd="yes y | ${cmd:?}"
   fi
   sh -c "${cmd:?}"
 )}
