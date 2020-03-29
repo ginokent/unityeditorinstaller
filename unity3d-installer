@@ -66,7 +66,7 @@ function InstallUnity () { (
   fi
   # [ can't read ${UnitySetupURLCSVFile:?} ] || [ ${UnitySetupURLCSVFile:?} is empty ]
   if [[ ! -r ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
-    CreateOrUpdateUnitySetupURLCSVFile "$@"
+    CreateOrUpdateUnitySetupURLCSVFile "$@" --verbose
   fi
   # vars
   status=200
@@ -85,10 +85,11 @@ function InstallUnity () { (
   sh -cx "curl -LR ${url:?} -z ${defaultDownloadPath:?} -o ${defaultDownloadPath:?} && chmod +x ${defaultDownloadPath:?}"
 
   while true; do
-    error=$("${defaultDownloadPath:?}" --help 2>&1 | tee /dev/stderr) || true
+    error=$("${defaultDownloadPath:?}" --help 2>&1) || true
     if [[ ${error} ]]; then
+      echo "${error:?}" | sh -c "${stderrPipeInfo:?}"
       libName="$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")"
-      result=$(sudo -E sh -c "apt-file search ${libName:?}" | tee /dev/stderr)
+      result=$(sudo -E sh -cx "apt-file search ${libName:?}")
       echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
       echo "${result:?}" | grep x86_64-linux-gnu | awk -F: "\$0=\$1" | sort -u | while read -r package; do
         sudo -E sh -cx "apt-get -y install ${package:?}"
