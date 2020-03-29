@@ -102,8 +102,6 @@ function InstallUnity () { (
     fi
     # Install packages that contain the string "linux-gnu" in their names in preference.
     resultAptSearchEdited=$(echo "${resultAptSearch:?}" | grep "linux-gnu" || true; echo "${resultAptSearch:?}" | grep -v "linux-gnu" || true)
-    # output resultAptSearch
-    echo "${resultAptSearchEdited:?}" 1>&2
     # install packages
     echo "${resultAptSearchEdited:?}" | cut -d: -f1 | while read -r package; do
       # Skip the installed packages.
