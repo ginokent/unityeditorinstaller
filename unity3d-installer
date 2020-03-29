@@ -14,7 +14,14 @@ declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/arc
 
 # function 1
 selectWritableDir () { for path in "$@"; do if [ -w "${path}" ]; then echo -n "${path}"; return 0; fi; done; return 1; }
-checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported." | sh -c "${stderrPipeError:?}"; exit 1; fi; }
+checkSupportOS () {
+  if uname -s | grep -q Linux && command -v apt-get 1>/dev/null; then
+    return 0
+  fi
+  # else
+  echo "OS not supported." | sh -c "${stderrPipeError:?}"
+  exit 1
+}
 resolveDependencies () {
   if command -v apt-get 1>/dev/null; then
     if ! command -v apt-file 1>/dev/null; then
