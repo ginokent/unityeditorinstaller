@@ -32,10 +32,10 @@ separator=$(printf '\t')                                       && declare -r Sep
 progDir=$(cd "$(dirname "$0")" && pwd || exit 1)               && declare -r ProgDir="${progDir:?}"     && export ProgDir
 
 # var 2
-csvStoreDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp) && declare -r CSVStoreDir="${csvStoreDir:?}"                              && export CSVStoreDir
-: noop                                                           && declare -r UnitySetupURLCSVFile="${CSVStoreDir:?}/.${PROG_NAME:?}.csv" && export UnitySetupURLCSVFile
-setupsDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp)   && declare -r SetupsDir="${setupsDir:?}"                                  && export SetupsDir
-installDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp)
+csvStoreDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp)   && declare -r CSVStoreDir="${csvStoreDir:?}"                              && export CSVStoreDir
+: noop                                                             && declare -r UnitySetupURLCSVFile="${CSVStoreDir:?}/.${PROG_NAME:?}.csv" && export UnitySetupURLCSVFile
+setupsBaseDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp) && declare -r SetupsBaseDir="${setupsBaseDir:?}"                          && export SetupsBaseDir
+installBaseDir=$(selectWritableDir "${HOME:?}")                    && declare -r InstallBaseDir="${installBaseDir:?}"                        && export InstallBaseDir
 
 
 
@@ -75,16 +75,15 @@ function InstallUnity () { (
   # vars
   status=200
   specified_version=$(printf '%s' "$*" | sed "s@install.*[[:blank:]]*[[:blank:]][[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
-  specified_version_escaped_regex=${specified_version//\./\\.}
-  csvRow=$(grep "^${specified_version_escaped_regex}${Separator:?}${status:?}${Separator:?}" "${UnitySetupURLCSVFile:?}")
+  csvRow=$(grep "^${specified_version//\./\\.}${Separator:?}${status:?}${Separator:?}" "${UnitySetupURLCSVFile:?}")
   if [[ -z "${csvRow:?}" ]]; then
     echo "Specify the version of Unity that can be installed." | sh -c "${stderrPipeError:?}"
     exit 1
   fi
   url=$(echo "${csvRow:?}" | awk -F"${Separator:?}" "\$0=\$3")
   setupFileName=$(basename "${url:?}")
-  defaultDownloadDir="${SetupsDir:?}/${setupFileName:?}" && mkdir -p "${defaultDownloadDir:?}"
-  defaultUnitySetupPath="${defaultDownloadDir:?}/${setupFileName:?}"
+  defaultUnitySetupDownloadDir="${SetupsBaseDir:?}/${setupFileName:?}" && mkdir -p "${defaultUnitySetupDownloadDir:?}"
+  defaultUnitySetupPath="${defaultUnitySetupDownloadDir:?}/${setupFileName:?}"
   cmd="curl -LR ${url:?} -z ${defaultUnitySetupPath:?} -o ${defaultUnitySetupPath:?} && chmod +x ${defaultUnitySetupPath:?}" && echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}"
   sh -c "${cmd:?}"
 
@@ -119,7 +118,8 @@ function InstallUnity () { (
       break
     fi
   done
-  installCommands="${defaultUnitySetupPath:?} --unattended --download-location='${defaultDownloadDir:?}' --install-location='${INSTALL_DIR:?}'"
+  installDir="${InstallBaseDir:?}/Unity/${specified_version:?}"
+  installCommands="${defaultUnitySetupPath:?} --unattended --download-location='${defaultUnitySetupDownloadDir:?}' --install-location='${InstallBaseDir:?}'"
   if [[ $* =~ .*-y.*|.*--yes.* ]]; then
     installCommands="yes y | ${installCommands:?}"
   fi
