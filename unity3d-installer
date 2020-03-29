@@ -17,7 +17,9 @@ selectWritableDir () { for path in "$@"; do [ ! -w "${path}" ] || { echo -n "${p
 checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported." | sh -c "${stderrPipeError:?}"; exit 1; fi; }
 resolveDependencies () {
   if command -v apt-get 1>/dev/null; then
-    sudo -E sh -cx "apt-get update && apt-get install -y apt-file && apt-file update"
+    if ! command -v apt-file 1>/dev/null; then
+      sudo -E sh -cx "apt-get update && apt-get install -y apt-file && apt-file update"
+    fi
   else
     echo "OS not supported." | sh -c "${stderrPipeError:?}"
     exit 1
@@ -84,8 +86,7 @@ function InstallUnity () { (
   echo "Download ${url:?} as ${defaultDownloadPath:?}" | sh -c "${stderrPipeInfo:?}"
   sh -cx "curl -LR ${url:?} -z ${defaultDownloadPath:?} -o ${defaultDownloadPath:?} && chmod +x ${defaultDownloadPath:?}"
 
-  while true; do
-    error=$("${defaultDownloadPath:?}" --help 2>&1) || true
+  while ! error=$("${defaultDownloadPath:?}" --help 2>&1); do
     if [[ ${error} ]]; then
       echo "${error:?}" | sh -c "${stderrPipeInfo:?}"
       libName="$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")"
