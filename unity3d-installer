@@ -89,7 +89,7 @@ function InstallUnity () { (
   fi
   url=$(echo "${csvRow:?}" | cut -d"${Separator:?}" -f3)
   setupFileName=$(basename "${url:?}")
-  defaultUnitySetupDownloadDir="${SetupsBaseDir:?}/${setupFileName:?}" && mkdir -p "${defaultUnitySetupDownloadDir:?}"
+  defaultUnitySetupDownloadDir="${SetupsBaseDir:?}/UnitySetup/${specified_version:?}" && mkdir -p "${defaultUnitySetupDownloadDir:?}"
   defaultUnitySetupPath="${defaultUnitySetupDownloadDir:?}/${setupFileName:?}"
   cmd="curl -LR '${url:?}' -z '${defaultUnitySetupPath:?}' -o '${defaultUnitySetupPath:?}' && chmod +x '${defaultUnitySetupPath:?}'"
   echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && sh -c "${cmd:?}"
