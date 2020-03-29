@@ -1,21 +1,12 @@
 #!/usr/bin/env bash
 set -eE -o pipefail
 
-# shellcheck disable=SC2016,SC2089,SC2090
-stderrPipeDebug=' exec awk "{print \"\\033[00m$(date +%Y-%m-%dT%H:%M:%S%z) [  debug] \"\$0\"\\033[0m\"}" /dev/stdin 1>&2' && export stderrPipeDebug
-# shellcheck disable=SC2016,SC2089,SC2090
-stderrPipeNotice='exec awk "{print \"\\033[01m$(date +%Y-%m-%dT%H:%M:%S%z) [ notice] \"\$0\"\\033[0m\"}" /dev/stdin 1>&2' && export stderrPipeNotice
-# shellcheck disable=SC2016,SC2089,SC2090
-stderrPipeError=' exec awk "{print \"\\033[31m$(date +%Y-%m-%dT%H:%M:%S%z) [  error] \"\$0\"\\033[0m\"}" /dev/stdin 1>&2' && export stderrPipeError
-# shellcheck disable=SC2016,SC2089,SC2090
-stderrPipeOK='    exec awk "{print \"\\033[32m$(date +%Y-%m-%dT%H:%M:%S%z) [     ok] \"\$0\"\\033[0m\"}" /dev/stdin 1>&2' && export stderrPipeOK
-# shellcheck disable=SC2016,SC2089,SC2090
-stderrPipeWarn='  exec awk "{print \"\\033[33m$(date +%Y-%m-%dT%H:%M:%S%z) [warning] \"\$0\"\\033[0m\"}" /dev/stdin 1>&2' && export stderrPipeWarn
-# shellcheck disable=SC2016,SC2089,SC2090
-stderrPipeInfo='  exec awk "{print \"\\033[34m$(date +%Y-%m-%dT%H:%M:%S%z) [   info] \"\$0\"\\033[0m\"}" /dev/stdin 1>&2' && export stderrPipeInfo
-
-apt-get () { if [ "$1" = update ]; then [ 43200 -ge $(($(date +%s)-$( { date -d "$(stat /var/lib/apt/lists/* | awk -F"Change:" "/Change:/ {print \$2}" | sort | tail -n 1)" +%s; } 2>/dev/null)+0)) ] || command apt-get update; else command apt-get "$@"; fi; } && export -f apt-get
-apt-file () { if [ "$1" = update ]; then [ 43200 -ge $(($(date +%s)-$( { date -d "$(stat /var/lib/apt/lists/* | awk -F"Change:" "/Change:/ {print \$2}" | sort | tail -n 1)" +%s; } 2>/dev/null)+0)) ] || command apt-file update; else command apt-file "$@"; fi; } && export -f apt-file
+export  stderrPipeDebug="awk \"{print \\\"\\\\033[00m\\\$(date +%Y-%m-%dT%H:%M:%S%z) [  debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin 1>&2"
+export stderrPipeNotice="awk \"{print \\\"\\\\033[01m\\\$(date +%Y-%m-%dT%H:%M:%S%z) [ notice] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin 1>&2"
+export  stderrPipeError="awk \"{print \\\"\\\\033[31m\\\$(date +%Y-%m-%dT%H:%M:%S%z) [  error] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin 1>&2"
+export     stderrPipeOK="awk \"{print \\\"\\\\033[32m\\\$(date +%Y-%m-%dT%H:%M:%S%z) [     ok] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin 1>&2"
+export   stderrPipeWarn="awk \"{print \\\"\\\\033[33m\\\$(date +%Y-%m-%dT%H:%M:%S%z) [warning] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin 1>&2"
+export   stderrPipeInfo="awk \"{print \\\"\\\\033[34m\\\$(date +%Y-%m-%dT%H:%M:%S%z) [   info] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin 1>&2"
 
 # const
 declare -r PROG_NAME=unity3d-installer                                               && export PROG_NAME
@@ -25,8 +16,8 @@ declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/arc
 selectWritableDir () { for path in "$@"; do [ ! -w "${path}" ] || { echo -n "${path}"; return 0; }; done }
 checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported." | sh -c "${stderrPipeError:?}"; exit 1; fi; }
 resolveDependencies () {
-  if command -v apt-get 1>/dev/null && ! command -v apt-file 1>/dev/null; then
-    apt-get update && apt-get install -y apt-file
+  if command -v apt-get 1>/dev/null; then
+    sudo -E sh -cx "apt-get update && apt-get install -y apt-file && apt-file update"
   else
     echo "OS not supported." | sh -c "${stderrPipeError:?}"
     exit 1
@@ -97,9 +88,10 @@ function InstallUnity () { (
     error=$("${defaultDownloadPath:?}" --help 2>&1 | tee /dev/stderr) || true
     if [[ ${error} ]]; then
       libName="$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")"
-      result=$(sh -c "apt-file search ${libName:?}" | tee /dev/stderr)
+      result=$(sudo -E sh -c "apt-file search ${libName:?}" | tee /dev/stderr)
+      echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
       echo "${result:?}" | grep x86_64-linux-gnu | awk -F: "\$0=\$1" | sort -u | while read -r package; do
-        sh -cx "apt-get -y install ${package:?}"
+        sudo -E sh -cx "apt-get -y install ${package:?}"
       done
     else
       break
@@ -165,6 +157,7 @@ USAGE
 
 function main () {
   checkSupportOS
+  resolveDependencies
   case "$1" in
   init)
     CreateOrUpdateUnitySetupURLCSVFile "$@"
