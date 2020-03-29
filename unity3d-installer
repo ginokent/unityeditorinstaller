@@ -83,18 +83,23 @@ function InstallUnity () { (
   url=$(echo "${csvRow:?}" | awk -F"${Separator:?}" "\$0=\$3")
   setupFileName=$(basename "${url:?}")
   defaultDownloadDir="${SetupsDir:?}/${setupFileName:?}" && mkdir -p "${defaultDownloadDir:?}"
-  defaultDownloadPath="${defaultDownloadDir:?}/${setupFileName:?}"
-  echo "Download ${url:?} as ${defaultDownloadPath:?}" | sh -c "${stderrPipeInfo:?}"
-  sh -cx "curl -LR ${url:?} -z ${defaultDownloadPath:?} -o ${defaultDownloadPath:?} && chmod +x ${defaultDownloadPath:?}"
+  defaultUnitySetupPath="${defaultDownloadDir:?}/${setupFileName:?}"
+  echo "Download ${url:?} as ${defaultUnitySetupPath:?}" | sh -c "${stderrPipeInfo:?}"
+  sh -cx "curl -LR ${url:?} -z ${defaultUnitySetupPath:?} -o ${defaultUnitySetupPath:?} && chmod +x ${defaultUnitySetupPath:?}"
 
-  while ! error=$("${defaultDownloadPath:?}" --help 2>&1); do
+  while ! error=$("${defaultUnitySetupPath:?}" --help 2>&1); do
     if [[ ${error} ]]; then
       # output error
       echo "${error:?}" | sh -c "${stderrPipeInfo:?}"
       # install lib
       libName="$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")"
       echo "Install ${libName:?}" | sh -c "${stderrPipeInfo:?}"
-      result=$(sudo -E sh -cx "apt-file search ${libName:?}")
+      result=$(sudo -E sh -cx "apt-file search ${libName:?}" 2>&1)
+      # apt-file update
+      if echo "${result:?}" | grep -q "^E: .*apt.*update"; then
+        sudo -E sh -cx "apt-file update"
+        continue
+      fi
       # output result
       echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
       # output result
@@ -111,6 +116,11 @@ function InstallUnity () { (
       break
     fi
   done
+  installCommands="${defaultUnitySetupPath:?} --unattended --download-location='${defaultDownloadDir:?}' --install-location='${INSTALL_DIR:?}'"
+  if [[ $* =~ .*-y.*|.*--yes.* ]]; then
+    installCommands="yes y | ${installCommands:?}"
+  fi
+  echo "${installCommands:?}" | stderrPipeOK
 )}
 
 
