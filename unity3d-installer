@@ -53,7 +53,7 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
         | while read -r url; do
             printf "%s${Separator:?}%s${Separator:?}%s\n" "$(printf "%s" "${url}" | sed "s|.*/UnitySetup-||")" "$(curl -ILsS -o /dev/null -w "%{http_code}" "${url:?}")" "${url:?}"
           done \
-        | if [[ $* =~ .*-v.*|.*--verbose.* ]]; then tee /dev/stderr; else cat; fi
+        | if [[ $* =~ .*-q.*|.*--quiet.* ]]; then cat; else tee /dev/stderr; fi
     )
     echo "${csvData:?}" >"${UnitySetupURLCSVFile:?}"
   fi
@@ -70,7 +70,7 @@ function InstallUnity () { (
   fi
   # [ can't read ${UnitySetupURLCSVFile:?} ] || [ ${UnitySetupURLCSVFile:?} is empty ]
   if [[ ! -r ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
-    CreateOrUpdateUnitySetupURLCSVFile "$@" --verbose
+    CreateOrUpdateUnitySetupURLCSVFile "$@"
   fi
   # vars
   status=200
@@ -156,8 +156,8 @@ The commands are:
                     arguments
                         -f, --fource
                             fource update
-                        -v, --verbose
-                            display verbose info.
+                        -q, --quiet
+                            suppress csv content output
 
         install     install specified version Unity
 
