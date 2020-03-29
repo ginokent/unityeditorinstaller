@@ -73,9 +73,13 @@ function InstallUnity () { (
     echo "Specify Unity version." | sh -c "${stderrPipeError:?}"
     exit 1
   fi
+  # [ can't read ${UnitySetupURLCSVFile:?} ] || [ ${UnitySetupURLCSVFile:?} is empty ]
+  if [[ ! -r ${UnitySetupURLCSVFile:?} ]] || [[ ! -s ${UnitySetupURLCSVFile:?} ]]; then
+    CreateOrUpdateUnitySetupURLCSVFile "$@"
+  fi
+  # vars
   status=200
-  # shellcheck disable=SC2001
-  specified_version=$(echo "$*" | sed "s@install.*[[:blank:]]*[[:blank:]][[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
+  specified_version=$(printf '%s' "$*" | sed "s@install.*[[:blank:]]*[[:blank:]][[:blank:]]*\([^\.][^\.]*\.[^\.][^\.]*\.[^\.][^\.]*\).*@\1@")
   specified_version_escaped_regex=${specified_version//\./\\.}
   csvRow=$(grep "^${specified_version_escaped_regex}${Separator:?}${status:?}${Separator:?}" "${UnitySetupURLCSVFile:?}")
   if [[ -z "${csvRow:?}" ]]; then
@@ -92,8 +96,11 @@ function InstallUnity () { (
   while true; do
     error=$("${defaultDownloadPath:?}" --help 2>&1 | tee /dev/stderr) || true
     if [[ ${error} ]]; then
-      lib="$(apt-file search "$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")" | grep x86_64-linux-gnu | awk -F: "\$0=\$1")"
-      apt-get -y install "${lib:?}"
+      libName="$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")"
+      result=$(sh -c "apt-file search ${libName:?}" | tee /dev/stderr)
+      echo "${result:?}" | grep x86_64-linux-gnu | awk -F: "\$0=\$1" | sort -u | while read -r package; do
+        sh -cx "apt-get -y install ${package:?}"
+      done
     else
       break
     fi
