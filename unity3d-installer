@@ -98,7 +98,7 @@ function InstallUnity () { (
       # output result
       echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
       # output result
-      echo "${result:?}" | awk -F: "\$0=\$1" | while read -r deb; do
+      echo "${result:?}" | awk -F: "\$0=\$1" | while read -r package; do
         if ! dpkg -l | grep -Eq "ii[[:blank:]]+${package:?}"; then
           sudo -E sh -cx "apt-get -y install ${package:?}"
           continue
