@@ -88,37 +88,34 @@ function InstallUnity () { (
   echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && sh -c "${cmd:?}"
 
   while ! error=$("${defaultUnitySetupPath:?}" --help 2>&1); do
-    if [[ ${error} ]]; then
-      # output error
-      echo "${error:?}" | sh -c "${stderrPipeInfo:?}"
-      # lib
-      libName="$(echo "${error:?}" | cut -d: -f3 | tr -d "[:blank:]")"
-      # search lib
-      cmd="apt-file search ${libName:?}"
-      echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && result=$(sudo -E sh -c "${cmd:?}" 2>&1 || true) && echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
-      # Whether or not "apt-file update" is required.
-      if echo "${result:?}" | grep -q "^E: .*apt.*update"; then
-        cmd="apt-file update" && echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}"
-        sudo -E sh -c "${cmd:?}"
-        continue
-      fi
-      # output result
-      echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
-      # Install packages that contain the string "linux-gnu" in their names in preference.
-      { echo "${result:?}" | grep "linux-gnu" || true; echo "${result:?}" | grep -v "linux-gnu" || true; } | cut -d: -f1 | while read -r package; do
-        # Skip the installed packages.
-        if dpkg -l | grep -Eq "ii[[:blank:]]+${package:?}"; then
-          continue
-        fi
-        cmd="apt-get -y install ${package:?}"
-        sudo -E sh -c "${cmd:?}"
-      done
-      #echo "${result:?}" | grep x86_64-linux-gnu | awk -F: "\$0=\$1" | sort -u | while read -r package; do
-      #  sudo -E sh -cx "apt-get -y install ${package:?}"
-      #done
-    else
+    if [[ -z ${error} ]]; then
       break
     fi
+    # output error
+    echo "${error:?}" | sh -c "${stderrPipeInfo:?}"
+    # lib
+    libName="$(echo "${error:?}" | cut -d: -f3 | tr -d "[:blank:]")"
+    cmd="apt-file search ${libName:?}"
+    echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && result=$(sudo -E sh -c "${cmd:?}" 2>&1 || true) && echo "${result:?}"
+    # Whether or not "apt-file update" is required.
+    if echo "${result:?}" | grep -q "^E: .*apt.*update"; then
+      cmd="apt-file update"
+      echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && sudo -E sh -c "${cmd:?}"
+      continue
+    fi
+    # Install packages that contain the string "linux-gnu" in their names in preference.
+    resultEdited=$(echo "${result:?}" | grep "linux-gnu" || true; echo "${result:?}" | grep -v "linux-gnu" || true)
+    # output result
+    echo "${resultEdited:?}" | sh -c "${stderrPipeInfo:?}"
+    # install packages
+    echo "${resultEdited:?}" | cut -d: -f1 | while read -r package; do
+      # Skip the installed packages.
+      if dpkg -l | grep -Eq "ii[[:blank:]]+${package:?}"; then
+        continue
+      fi
+      cmd="apt-get -y install ${package:?}"
+      echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && sudo -E sh -c "${cmd:?}"
+    done
   done
   installDir="${InstallBaseDir:?}/Unity/${specified_version:?}"
   installCommands="${defaultUnitySetupPath:?} --unattended --download-location='${defaultUnitySetupDownloadDir:?}' --install-location='${InstallBaseDir:?}'"
