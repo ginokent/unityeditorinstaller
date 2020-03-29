@@ -13,7 +13,7 @@ declare -r PROG_NAME=unity3d-installer                                          
 declare -r UNITY_DOWNLOAD_ARCHIVE_URL=https://unity3d.com/get-unity/download/archive && export UNITY_DOWNLOAD_ARCHIVE_URL
 
 # function 1
-selectWritableDir () { for path in "$@"; do [ ! -w "${path}" ] || { echo -n "${path}"; return 0; }; done }
+selectWritableDir () { for path in "$@"; do if [ -w "${path}" ]; then echo -n "${path}"; return 0; fi; done; return 1; }
 checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported." | sh -c "${stderrPipeError:?}"; exit 1; fi; }
 resolveDependencies () {
   if command -v apt-get 1>/dev/null; then
@@ -35,6 +35,7 @@ progDir=$(cd "$(dirname "$0")" && pwd || exit 1)               && declare -r Pro
 csvStoreDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp) && declare -r CSVStoreDir="${csvStoreDir:?}"                              && export CSVStoreDir
 : noop                                                           && declare -r UnitySetupURLCSVFile="${CSVStoreDir:?}/.${PROG_NAME:?}.csv" && export UnitySetupURLCSVFile
 setupsDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp)   && declare -r SetupsDir="${setupsDir:?}"                                  && export SetupsDir
+installDir=$(selectWritableDir "${HOME:?}" "${ProgDir:?}" /tmp)
 
 
 
@@ -84,8 +85,8 @@ function InstallUnity () { (
   setupFileName=$(basename "${url:?}")
   defaultDownloadDir="${SetupsDir:?}/${setupFileName:?}" && mkdir -p "${defaultDownloadDir:?}"
   defaultUnitySetupPath="${defaultDownloadDir:?}/${setupFileName:?}"
-  echo "Download ${url:?} as ${defaultUnitySetupPath:?}" | sh -c "${stderrPipeInfo:?}"
-  sh -cx "curl -LR ${url:?} -z ${defaultUnitySetupPath:?} -o ${defaultUnitySetupPath:?} && chmod +x ${defaultUnitySetupPath:?}"
+  cmd="curl -LR ${url:?} -z ${defaultUnitySetupPath:?} -o ${defaultUnitySetupPath:?} && chmod +x ${defaultUnitySetupPath:?}" && echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}"
+  sh -c "${cmd:?}"
 
   while ! error=$("${defaultUnitySetupPath:?}" --help 2>&1); do
     if [[ ${error} ]]; then
@@ -98,7 +99,7 @@ function InstallUnity () { (
       # apt-file update
       if echo "${result:?}" | grep -q "^E: .*apt.*update"; then
         cmd="apt-file update" && echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}"
-        sudo -E sh -cx "${cmd:?}"
+        sudo -E sh -c "${cmd:?}"
         continue
       fi
       # output result
@@ -106,7 +107,8 @@ function InstallUnity () { (
       # output result
       echo "${result:?}" | awk -F: "\$0=\$1" | while read -r package; do
         if ! dpkg -l | grep -Eq "ii[[:blank:]]+${package:?}"; then
-          sudo -E sh -cx "apt-get -y install ${package:?}"
+          cmd="apt-get -y install ${package:?}"
+          sudo -E sh -c "${cmd:?}"
           continue
         fi
       done
