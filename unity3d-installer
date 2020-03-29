@@ -120,7 +120,7 @@ function InstallUnity () { (
     done
   done
   installDir="${InstallBaseDir:?}/Unity/${specified_version:?}"
-  cmd="'${defaultUnitySetupPath:?}' --unattended --download-location='${defaultUnitySetupDownloadDir:?}' --install-location='${InstallDir:?}'"
+  cmd="'${defaultUnitySetupPath:?}' --unattended --download-location='${defaultUnitySetupDownloadDir:?}' --install-location='${installDir:?}'"
   if [[ $* =~ .*-y.*|.*--yes.* ]]; then
     cmd="yes y | ${installCommands:?}"
   fi
