@@ -93,11 +93,12 @@ function InstallUnity () { (
       echo "${error:?}" | sh -c "${stderrPipeInfo:?}"
       # install lib
       libName="$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")"
-      echo "Install ${libName:?}" | sh -c "${stderrPipeInfo:?}"
-      result=$(sudo -E sh -cx "apt-file search ${libName:?}" 2>&1)
+      cmd="apt-file search ${libName:?}" && echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}"
+      result=$(sudo -E sh -c "${cmd:?}" 2>&1 || true) && echo "${result:?}" 1>&2
       # apt-file update
       if echo "${result:?}" | grep -q "^E: .*apt.*update"; then
-        sudo -E sh -cx "apt-file update"
+        cmd="apt-file update" && echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}"
+        sudo -E sh -cx "${cmd:?}"
         continue
       fi
       # output result
