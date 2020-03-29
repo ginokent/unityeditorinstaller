@@ -88,13 +88,24 @@ function InstallUnity () { (
 
   while ! error=$("${defaultDownloadPath:?}" --help 2>&1); do
     if [[ ${error} ]]; then
+      # output error
       echo "${error:?}" | sh -c "${stderrPipeInfo:?}"
+      # install lib
       libName="$(echo "${error:?}" | awk -F: "\$0=\$3" | tr -d "[:blank:]")"
+      echo "Install ${libName:?}" | sh -c "${stderrPipeInfo:?}"
       result=$(sudo -E sh -cx "apt-file search ${libName:?}")
+      # output result
       echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
-      echo "${result:?}" | grep x86_64-linux-gnu | awk -F: "\$0=\$1" | sort -u | while read -r package; do
-        sudo -E sh -cx "apt-get -y install ${package:?}"
+      # output result
+      echo "${result:?}" | awk -F: "\$0=\$1" | while read -r deb; do
+        if ! dpkg -l | grep -Eq "ii[[:blank:]]+${deb:?}"; then
+          sudo -E sh -cx "apt-get -y install ${package:?}"
+          continue
+        fi
       done
+      #echo "${result:?}" | grep x86_64-linux-gnu | awk -F: "\$0=\$1" | sort -u | while read -r package; do
+      #  sudo -E sh -cx "apt-get -y install ${package:?}"
+      #done
     else
       break
     fi
