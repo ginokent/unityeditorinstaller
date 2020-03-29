@@ -105,7 +105,7 @@ function InstallUnity () { (
       # output result
       echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
       # Install packages that contain the string "linux-gnu" in their names in preference.
-      { echo "${result:?}" | grep "linux-gnu"; echo "${result:?}" | grep -v "linux-gnu"; } | cut -d: -f1 | while read -r package; do
+      { echo "${result:?}" | grep "linux-gnu" || true; echo "${result:?}" | grep -v "linux-gnu" || true; } | cut -d: -f1 | while read -r package; do
         # Skip the installed packages.
         if dpkg -l | grep -Eq "ii[[:blank:]]+${package:?}"; then
           continue
