@@ -18,7 +18,8 @@ checkSupportOS () { if ! uname -s | grep -q Linux; then echo "OS not supported."
 resolveDependencies () {
   if command -v apt-get 1>/dev/null; then
     if ! command -v apt-file 1>/dev/null; then
-      sudo -E sh -cx "apt-get update && apt-get install -y apt-file && apt-file update"
+      echo "apt-file command is required." | sh -c "${stderrPipeError:?}"
+      exit 1
     fi
   else
     echo "OS not supported." | sh -c "${stderrPipeError:?}"
@@ -98,7 +99,7 @@ function InstallUnity () { (
       echo "${result:?}" | sh -c "${stderrPipeInfo:?}"
       # output result
       echo "${result:?}" | awk -F: "\$0=\$1" | while read -r deb; do
-        if ! dpkg -l | grep -Eq "ii[[:blank:]]+${deb:?}"; then
+        if ! dpkg -l | grep -Eq "ii[[:blank:]]+${package:?}"; then
           sudo -E sh -cx "apt-get -y install ${package:?}"
           continue
         fi
