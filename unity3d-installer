@@ -120,11 +120,11 @@ function InstallUnity () { (
     done
   done
   installDir="${InstallBaseDir:?}/Unity/${specified_version:?}"
-  installCommands="${defaultUnitySetupPath:?} --unattended --download-location='${defaultUnitySetupDownloadDir:?}' --install-location='${InstallBaseDir:?}'"
+  cmd="${defaultUnitySetupPath:?} --unattended --download-location='${defaultUnitySetupDownloadDir:?}' --install-location='${InstallBaseDir:?}'"
   if [[ $* =~ .*-y.*|.*--yes.* ]]; then
-    installCommands="yes y | ${installCommands:?}"
+    cmd="yes y | ${installCommands:?}"
   fi
-  echo "${installCommands:?}" | sh -c "${stderrPipeOK:?}"
+  sh -c "${cmd:?}"
 )}
 
 
@@ -162,15 +162,17 @@ The commands are:
 
                     arguments
                         -f, --fource
-                            fource update
+                            Fource update
                         -q, --quiet
-                            suppress csv content output
+                            Suppress csv content output
 
         install     install specified version Unity
 
                     arguments
                         <version>
                             Unity version
+                        -y, --yes
+                            Automatic yes to prompts
 
         list        list installable Unity versions
 
