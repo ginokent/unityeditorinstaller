@@ -75,8 +75,12 @@ function CreateOrUpdateUnitySetupURLCSVFile () { (
 
 function ResolveDependenciesForUnity () { (
   while true; do
+    returnValue=false
     cmd="$1"
-    echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && resultUnitSetup=$(sh -c "${cmd:?}" 2>&1 | tee /dev/stderr) && break || true
+    echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && resultUnitSetup=$(sh -c "${cmd:?}" 2>&1 | tee /dev/stderr) && returnValue=true || true
+    if [[ ${returnValue} = true ]]; then
+      break
+    fi
     # lib
     libName="$(echo "${resultUnitSetup:?}" | cut -d: -f3 | tr -d "[:blank:]")"
     cmd="apt-file search ${libName:?}"
