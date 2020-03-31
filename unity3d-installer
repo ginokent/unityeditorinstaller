@@ -93,6 +93,7 @@ function ResolveDependenciesForUnity () { (
       fi
       cmd="apt-get -y install ${package:?}"
       echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && sudo -E sh -c "${cmd:?}"
+      break
     done
   done
 )}
@@ -140,7 +141,7 @@ function InstallUnity () { (
     echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && sh -c "${cmd:?}"
   fi
 
-  ResolveDependenciesForUnity "'${unityPath:?}' --help"
+  ResolveDependenciesForUnity "'${unityPath:?}' -nographics -batchmode -createManualActivationFile -logfile /dev/stdout -quit"
 )}
 
 
