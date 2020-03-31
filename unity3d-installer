@@ -102,11 +102,11 @@ function InstallUnity () { (
     # install dependency
     while true; do
       cmd="'${defaultUnitySetupPath:?}' --help"
-      echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && { resultUnitSetup=$(sh -c "${cmd:?}" 2>&1) && break || true; } && echo "${resultUnitSetup:?}" 1>&2
+      echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && resultUnitSetup=$(sh -c "${cmd:?}" 2>&1 | tee /dev/stderr) && break || true
       # lib
       libName="$(echo "${resultUnitSetup:?}" | cut -d: -f3 | tr -d "[:blank:]")"
       cmd="apt-file search ${libName:?}"
-      echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && { resultAptSearch=$(sudo -E sh -c "${cmd:?}" 2>&1) || true; } && echo "${resultAptSearch:?}" 1>&2
+      echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && resultAptSearch=$(sudo -E sh -c "${cmd:?}" 2>&1 | tee /dev/stderr) || true
       # Whether or not "apt-file update" is required.
       if echo "${resultAptSearch:?}" | grep -q "^E: .*apt.*update"; then
         cmd="apt-file update"
@@ -130,7 +130,7 @@ function InstallUnity () { (
     if [[ $* =~ .*-y.*|.*--yes.* ]]; then
       cmd="yes y | ${cmd:?}"
     fi
-    sh -c "${cmd:?}"
+    echo "Run: ${cmd:?}" | sh -c "${stderrPipeInfo:?}" && sh -c "${cmd:?}"
   fi
 )}
 
