@@ -29,7 +29,7 @@ checkSupportOS () {
 resolveDependencies () {
   if command -v apt-get 1>/dev/null; then
     if ! command -v apt-file 1>/dev/null; then
-      echo "apt-file command is required." | sh -c "${stderrPipeError:?}"
+      echo "apt-file: command not found." | sh -c "${stderrPipeError:?}"
       exit 1
     fi
   else
