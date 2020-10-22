@@ -179,31 +179,36 @@ ${PROG_NAME:?} is a tool for helping to install Unity to Linux.
 
 Usage:
 
-	${PROG_NAME:?} <command> [arguments]
+    ${PROG_NAME:?} <command> [arguments]
 
 The commands are:
 
-        init        create or update UnitySetup URL csv file as ${UnitySetupURLCSVFile:?}
+    init
+      create or update UnitySetup URL csv file as ${UnitySetupURLCSVFile:?}
 
-                    arguments
-                        -f, --fource
-                            Fource update
-                        -q, --quiet
-                            Suppress csv content output
+        options
+            -f, --fource
+                Fource update
+            -q, --quiet
+                Suppress csv content output
 
-        install     install specified version Unity
+    install
+      install specified version Unity
 
-                    arguments
-                        <version>
-                            Unity version
-                        -y, --yes
-                            Automatic yes to prompts
+        arguments
+            <version>
+                Unity version
 
-        list        list installable Unity versions
+        options
+            -y, --yes
+                Automatic yes to prompts
 
-                    arguments
-                        -1, --one-column
-                            If you want to output a single column, add this option
+    list
+      list installable Unity versions
+
+        options
+            -1, --one-column
+                If you want to output a single column, add this option
 
 USAGE
 )}
