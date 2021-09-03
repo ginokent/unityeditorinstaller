@@ -101,12 +101,12 @@ resolveDependenciesForUnitySetup () { (
     cmd="$1"
     # shellcheck disable=SC2015
     infoln "Run: ${cmd:?}"
-    if resultUnitSetup=$(sh -c "${cmd:?}" 2>&1 | tee /dev/stderr); then  # NOTE(djeeno): cmd が正常終了した場合 break
+    if resultUnitSetup=$(sh -c "${cmd:?}" 2>&1 | tee /dev/stderr); then  # NOTE(newtstat): cmd が正常終了した場合 break
       break
     fi
     # lib
     libName="$(echo "${resultUnitSetup:?}" | grep "error while loading shared libraries:" | cut -d: -f3 | tr -d "[:blank:]")"
-    if [[ ! $libName ]]; then  # NOTE(djeeno): インストールすべきライブラリが存在しなくなった場合 break
+    if [[ ! $libName ]]; then  # NOTE(newtstat): インストールすべきライブラリが存在しなくなった場合 break
       break
     fi
     cmd="apt-file search ${libName:?}" && infoln "Run: ${cmd:?}" && resultAptSearch=$(sudo -E sh -c "${cmd:?}" 2>&1 | tee /dev/stderr || true)
